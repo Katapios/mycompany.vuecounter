@@ -1,0 +1,4 @@
+<?php
+$MESS['MYCOMPANY_VUECOUNTER_MODULE_NAME'] = 'Vue Counter';
+$MESS['MYCOMPANY_VUECOUNTER_MODULE_DESCRIPTION'] = 'Модуль с Vue 3 счетчиком';
+?>
