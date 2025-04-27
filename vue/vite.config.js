@@ -1,16 +1,17 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
-import { resolve } from 'path'
 
 export default defineConfig({
   plugins: [vue()],
+  base: '/bitrix/js/mycompany.vuecounter/',
   build: {
-    outDir: resolve(__dirname, '../install/js/mycompany.vuecounter'),
+    outDir: '../install/js/mycompany.vuecounter',
     emptyOutDir: true,
     rollupOptions: {
-      input: resolve(__dirname, 'src/main.js'),
+      input: './src/main.js',
       output: {
-        entryFileNames: `app.js`
+        entryFileNames: 'app.js',
+        assetFileNames: '[name].[ext]'
       }
     }
   }
