@@ -58,6 +58,7 @@ class mycompany_vuecounter extends CModule
             GetMessage("MYCOMPANY_VUECOUNTER_UNINSTALL_TITLE"),
             __DIR__."/unstep.php"
         );
+        $this->UnInstallFiles();
     }
 
 
@@ -83,6 +84,12 @@ class mycompany_vuecounter extends CModule
             CopyDirFiles(__DIR__."/public/ru/vuecounter", $_SERVER["DOCUMENT_ROOT"]."/vuecounter", true, true);
         }
         return true;
+    }
+
+        function UnInstallFiles()
+    {
+        DeleteDirFilesEx('/local/components/mycompany/vuecounter/');
+        DeleteDirFilesEx('/vuecounter/');
     }
 
 }
