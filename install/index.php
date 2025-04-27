@@ -69,9 +69,9 @@ class mycompany_vuecounter extends CModule
         CopyDirFiles(__DIR__."/components", $_SERVER["DOCUMENT_ROOT"]."/local/components", true, true);
         // Копируем JS/CSS, если они нужны в отдельных каталогах (см. пункт 3)
         // Копируем JS
-        CopyDirFiles(__DIR__."/js", $_SERVER["DOCUMENT_ROOT"]."/bitrix/js", true, true);
+        // CopyDirFiles(__DIR__."/js", $_SERVER["DOCUMENT_ROOT"]."/bitrix/js", true, true);
         // Копируем CSS (если есть файлы стилей)
-        CopyDirFiles(__DIR__."/css", $_SERVER["DOCUMENT_ROOT"]."/bitrix/css", true, true);
+        // CopyDirFiles(__DIR__."/css", $_SERVER["DOCUMENT_ROOT"]."/bitrix/css", true, true);
         return true;
     }
 
