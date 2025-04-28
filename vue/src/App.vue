@@ -246,7 +246,15 @@ const getColumns = (type) => {
 };
 
 onMounted(loadItems);
-watch(entityType, () => loadItems());
+
+watch(entityType, () => {
+  currentPage.value = 1;
+  loadItems(true);
+});
+
+watch(searchQuery, () => {
+  currentPage.value = 1;
+});
 const applySearch = () => {};
 </script>
 
