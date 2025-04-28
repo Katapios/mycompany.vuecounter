@@ -4,108 +4,146 @@ if (!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true) die();
 use Bitrix\Main\Loader;
 use Bitrix\Main\Engine\Contract\Controllerable;
 use Bitrix\Crm\DealTable;
+use Bitrix\Crm\LeadTable;
+use Bitrix\Crm\ContactTable;
+use Bitrix\Tasks\Internals\TaskTable;
+use Bitrix\Catalog\CatalogIblockTable;
+use Bitrix\Iblock\ElementTable;
 
-class VueCounterComponent extends CBitrixComponent implements \Bitrix\Main\Engine\Contract\Controllerable
+class VueCounterComponent extends CBitrixComponent implements Controllerable
 {
     public function configureActions()
     {
-    return [
-        'getDeals' => ['prefilters' => []],
-        'getLeads' => ['prefilters' => []],
-        'getContacts' => ['prefilters' => []],
-        'getTasks' => ['prefilters' => []],
-        'getProducts' => ['prefilters' => []],
-    ];
+        return [
+            'getDeals' => ['prefilters' => []],
+            'getLeads' => ['prefilters' => []],
+            'getContacts' => ['prefilters' => []],
+            'getTasks' => ['prefilters' => []],
+            'getProducts' => ['prefilters' => []],
+        ];
     }
 
-    public function getDealsAction()
+    public function getDealsAction($offset = 0, $limit = 20)
     {
-        if (!\Bitrix\Main\Loader::includeModule('crm')) {
+        if (!Loader::includeModule('crm')) {
             return ['success' => false, 'error' => 'Модуль CRM не установлен'];
         }
 
-        $deals = \Bitrix\Crm\DealTable::getList([
-            'select' => ['ID', 'TITLE', 'STAGE_ID', 'OPPORTUNITY', 'CURRENCY_ID'],
-            'order' => ['ID' => 'DESC'],
-            'limit' => 10,
-        ])->fetchAll();
+        $deals = DealTable::query()
+            ->setSelect(['ID', 'TITLE', 'STAGE_ID', 'OPPORTUNITY', 'CURRENCY_ID'])
+            ->setOrder(['ID' => 'DESC'])
+            ->setOffset($offset)
+            ->setLimit($limit)
+            ->fetchAll();
 
-        return ['success' => true, 'deals' => $deals];
+        $totalCount = DealTable::getCount();
+
+        return [
+            'success' => true,
+            'deals' => $deals,
+            'total' => $totalCount,
+        ];
     }
 
-
-    public function getLeadsAction()
+    public function getLeadsAction($offset = 0, $limit = 20)
     {
-        if (!\Bitrix\Main\Loader::includeModule('crm')) {
+        if (!Loader::includeModule('crm')) {
             return ['success' => false, 'error' => 'Модуль CRM не установлен'];
         }
 
-        $leads = \Bitrix\Crm\LeadTable::getList([
-            'select' => ['ID', 'TITLE', 'STATUS_ID', 'OPPORTUNITY', 'CURRENCY_ID'],
-            'order' => ['ID' => 'DESC'],
-            'limit' => 10,
-        ])->fetchAll();
+        $leads = LeadTable::query()
+            ->setSelect(['ID', 'TITLE', 'STATUS_ID', 'OPPORTUNITY', 'CURRENCY_ID'])
+            ->setOrder(['ID' => 'DESC'])
+            ->setOffset($offset)
+            ->setLimit($limit)
+            ->fetchAll();
 
-        return ['success' => true, 'leads' => $leads];
+        $totalCount = LeadTable::getCount();
+
+        return [
+            'success' => true,
+            'leads' => $leads,
+            'total' => $totalCount,
+        ];
     }
 
-    public function getContactsAction()
+    public function getContactsAction($offset = 0, $limit = 20)
     {
-        if (!\Bitrix\Main\Loader::includeModule('crm')) {
+        if (!Loader::includeModule('crm')) {
             return ['success' => false, 'error' => 'Модуль CRM не установлен'];
         }
 
-        $contacts = \Bitrix\Crm\ContactTable::getList([
-            'select' => ['ID', 'NAME', 'LAST_NAME', 'POST'],
-            'order' => ['ID' => 'DESC'],
-            'limit' => 10,
-        ])->fetchAll();
+        $contacts = ContactTable::query()
+            ->setSelect(['ID', 'NAME', 'LAST_NAME', 'POST'])
+            ->setOrder(['ID' => 'DESC'])
+            ->setOffset($offset)
+            ->setLimit($limit)
+            ->fetchAll();
 
-        return ['success' => true, 'contacts' => $contacts];
+        $totalCount = ContactTable::getCount();
+
+        return [
+            'success' => true,
+            'contacts' => $contacts,
+            'total' => $totalCount,
+        ];
     }
 
-    public function getTasksAction()
+    public function getTasksAction($offset = 0, $limit = 20)
     {
-        if (!\Bitrix\Main\Loader::includeModule('tasks')) {
+        if (!Loader::includeModule('tasks')) {
             return ['success' => false, 'error' => 'Модуль Tasks не установлен'];
         }
 
-        $tasks = \Bitrix\Tasks\Internals\TaskTable::getList([
-            'select' => ['ID', 'TITLE', 'STATUS', 'RESPONSIBLE_ID'],
-            'order' => ['ID' => 'DESC'],
-            'limit' => 10,
-        ])->fetchAll();
+        $tasks = TaskTable::query()
+            ->setSelect(['ID', 'TITLE', 'STATUS', 'RESPONSIBLE_ID'])
+            ->setOrder(['ID' => 'DESC'])
+            ->setOffset($offset)
+            ->setLimit($limit)
+            ->fetchAll();
 
-        return ['success' => true, 'tasks' => $tasks];
+        $totalCount = TaskTable::getCount();
+
+        return [
+            'success' => true,
+            'tasks' => $tasks,
+            'total' => $totalCount,
+        ];
     }
 
-    public function getProductsAction()
+    public function getProductsAction($offset = 0, $limit = 20)
     {
-        if (!\Bitrix\Main\Loader::includeModule('catalog') || !\Bitrix\Main\Loader::includeModule('iblock')) {
+        if (!Loader::includeModule('catalog') || !Loader::includeModule('iblock')) {
             return ['success' => false, 'error' => 'Не подключены модули catalog или iblock'];
         }
 
-        // Найдем инфоблок товаров
-        $iblockId = \Bitrix\Catalog\CatalogIblockTable::getList([
+        $catalogInfo = CatalogIblockTable::getList([
             'filter' => ['=PRODUCT_IBLOCK_ID' => false],
             'select' => ['IBLOCK_ID']
-        ])->fetch()['IBLOCK_ID'];
+        ])->fetch();
 
-        if (!$iblockId) {
+        if (!$catalogInfo || !$catalogInfo['IBLOCK_ID']) {
             return ['success' => false, 'error' => 'Инфоблок товаров не найден'];
         }
 
-        // Теперь получаем элементы инфоблока
-        $products = \Bitrix\Iblock\ElementTable::getList([
-            'filter' => ['=IBLOCK_ID' => $iblockId],
-            'select' => ['ID', 'NAME'],
-            'order' => ['ID' => 'DESC'],
-            'limit' => 10,
-        ])->fetchAll();
+        $products = ElementTable::query()
+            ->setSelect(['ID', 'NAME'])
+            ->setFilter(['=IBLOCK_ID' => $catalogInfo['IBLOCK_ID']])
+            ->setOrder(['ID' => 'DESC'])
+            ->setOffset($offset)
+            ->setLimit($limit)
+            ->fetchAll();
 
-        return ['success' => true, 'products' => $products];
+        $totalCount = ElementTable::getCount([
+            '=IBLOCK_ID' => $catalogInfo['IBLOCK_ID']
+        ]);
+
+        return [
+            'success' => true,
+            'products' => $products,
+            'total' => $totalCount,
+        ];
     }
-
 
     public function executeComponent()
     {

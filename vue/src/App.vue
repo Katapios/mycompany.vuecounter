@@ -2,53 +2,97 @@
   <div class="crm-deals">
     <h2>CRM Сущности</h2>
 
-    <select v-model="entityType" @change="loadItems">
-      <option value="deals">Сделки</option>
-      <option value="leads">Лиды</option>
-      <option value="contacts">Контакты</option>
-      <option value="tasks">Задачи</option>
-      <option value="products">Товары</option>
-    </select>
+    <div class="controls">
+      <select v-model="entityType" @change="loadItems">
+        <option value="deals">Сделки</option>
+        <option value="leads">Лиды</option>
+        <option value="contacts">Контакты</option>
+        <option value="tasks">Задачи</option>
+        <option value="products">Товары</option>
+      </select>
+
+      <input
+        v-model="searchQuery"
+        @input="applySearch"
+        type="text"
+        placeholder="Поиск..."
+        class="search-input"
+      />
+    </div>
 
     <div v-if="loading" class="loader">Загрузка...</div>
     <div v-if="error" class="error">{{ error }}</div>
 
-    <div v-if="!loading && !error && items.length">
+    <div v-if="!loading && !error && filteredItems.length" class="grid-wrapper">
       <table class="main-grid-table" id="vue-grid">
         <thead>
           <tr>
-            <th v-for="column in columns" :key="column.id">
+            <th v-for="column in columns" :key="column.id" @click="sortBy(column.id)">
               {{ column.name }}
+              <span v-if="sortField === column.id">
+                {{ sortDirection === 'asc' ? '▲' : '▼' }}
+              </span>
             </th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="item in items" :key="item.ID">
+          <tr v-for="item in paginatedItems" :key="item.ID">
             <td v-for="column in columns" :key="column.id">
               {{ item[column.id] || '-' }}
             </td>
           </tr>
         </tbody>
       </table>
+      <div v-if="totalPages > 1" class="pagination">
+        <button
+          v-for="page in totalPages"
+          :key="page"
+          @click="goToPage(page)"
+          :class="{ active: currentPage === page }"
+        >
+          {{ page }}
+        </button>
+      </div>
     </div>
 
-    <div v-if="!loading && !error && !items.length">
+    <div v-if="!loading && !error && !filteredItems.length">
       Нет данных для отображения
     </div>
   </div>
 </template>
 
-<script setup>
-import { ref, onMounted, watch } from 'vue';
 
+<script setup>
+import { ref, onMounted, watch, computed } from 'vue';
+
+const offset = ref(0);
+const limit = 20;
+const total = ref(0);
+const loadingMore = ref(false);
+
+
+const currentPage = ref(1);        // текущая страница
+const itemsPerPage = 10;            // сколько записей на одной странице
 const entityType = ref('deals');
 const items = ref([]);
+const searchQuery = ref('');
 const loading = ref(true);
 const error = ref(null);
 const columns = ref([]);
 
-const loadItems = async () => {
-  loading.value = true;
+// Новое: состояние для сортировки
+const sortField = ref('');
+const sortDirection = ref('asc'); // 'asc' или 'desc'
+
+const loadItems = async (reset = false) => {
+  if (reset) {
+    offset.value = 0;
+    items.value = [];
+    total.value = 0;
+  }
+
+  loading.value = offset.value === 0;  // первое открытие
+  loadingMore.value = offset.value > 0; // последующие догрузки
   error.value = null;
 
   let actionName = '';
@@ -62,12 +106,19 @@ const loadItems = async () => {
 
   try {
     const response = await BX.ajax.runComponentAction('mycompany:vuecounter', actionName, {
-      mode: 'class'
+      mode: 'class',
+      data: {
+        offset: offset.value,
+        limit: limit
+      }
     });
 
     if (response.data.success) {
-      items.value = response.data[entityType.value];
+      items.value.push(...response.data[entityType.value]);
+      total.value = response.data.total;
       columns.value = getColumns(entityType.value);
+      sortField.value = '';
+      offset.value += limit; // увеличиваем смещение
     } else {
       error.value = 'Ошибка получения данных';
     }
@@ -76,6 +127,65 @@ const loadItems = async () => {
     error.value = 'Ошибка связи с сервером';
   } finally {
     loading.value = false;
+    loadingMore.value = false;
+  }
+};
+
+
+// Live поиск + сортировка
+const filteredItems = computed(() => {
+  let filtered = items.value;
+
+  if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase();
+    filtered = filtered.filter(item =>
+      Object.values(item).some(val =>
+        String(val).toLowerCase().includes(query)
+      )
+    );
+  }
+
+  if (sortField.value) {
+    filtered = [...filtered].sort((a, b) => {
+      const aValue = a[sortField.value] || '';
+      const bValue = b[sortField.value] || '';
+
+      if (aValue < bValue) return sortDirection.value === 'asc' ? -1 : 1;
+      if (aValue > bValue) return sortDirection.value === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }
+
+  return filtered;
+});
+
+// Клик по заголовку для сортировки
+const sortBy = (field) => {
+  if (sortField.value === field) {
+    // если кликаем по уже отсортированному столбцу — меняем порядок
+    sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc';
+  } else {
+    // иначе сортируем по новому полю
+    sortField.value = field;
+    sortDirection.value = 'asc';
+  }
+};
+
+// данные для текущей страницы
+const paginatedItems = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage;
+  return filteredItems.value.slice(start, start + itemsPerPage);
+});
+
+// сколько всего страниц
+const totalPages = computed(() => {
+  return Math.ceil(filteredItems.value.length / itemsPerPage);
+});
+
+// смена страницы
+const goToPage = (page) => {
+  if (page >= 1 && page <= totalPages.value) {
+    currentPage.value = page;
   }
 };
 
@@ -122,40 +232,89 @@ const getColumns = (type) => {
 };
 
 onMounted(loadItems);
-
-watch(entityType, () => {
-  loadItems();
-});
+watch(entityType, () => loadItems());
+const applySearch = () => {};
 </script>
+
 
 <style scoped>
 .crm-deals {
-  max-width: 1000px;
-  margin: 20px auto;
+  width: 100%;
+  padding: 20px;
+  box-sizing: border-box;
   font-family: Arial, sans-serif;
 }
-.loader {
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.search-input {
+  flex: 1;
+  padding: 8px;
+  font-size: 14px;
+}
+
+.loader, .error {
   text-align: center;
-  font-size: 18px;
+  font-size: 16px;
   padding: 20px;
 }
-.error {
-  color: red;
-  text-align: center;
-  font-size: 18px;
-  padding: 20px;
-}
-.main-grid-table {
+
+.grid-wrapper {
   width: 100%;
-  border-collapse: collapse;
-  margin-top: 20px;
+  overflow-x: auto;
 }
+
+.main-grid-table {
+  width: 100%; /* Теперь на всю ширину контейнера */
+  border-collapse: collapse;
+  table-layout: fixed; /* ВАЖНО: фиксированная таблица */
+}
+
 .main-grid-table th, .main-grid-table td {
   border: 1px solid #ccc;
-  padding: 8px;
+  padding: 6px 8px;
   text-align: left;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
+
 .main-grid-table th {
   background-color: #f2f2f2;
+  cursor: pointer;
+}
+
+.main-grid-table th:hover {
+  background-color: #e8e8e8;
+}
+
+.main-grid-table tbody tr:hover {
+  background-color: #f5f7fa;
+}
+.pagination {
+  margin-top: 20px;
+  text-align: center;
+}
+
+.pagination button {
+  margin: 0 5px;
+  padding: 6px 12px;
+  font-size: 14px;
+  cursor: pointer;
+  background: #f2f2f2;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.pagination button.active {
+  background-color: #4a90e2;
+  color: white;
+  border-color: #4a90e2;
 }
 </style>
