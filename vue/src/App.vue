@@ -91,8 +91,8 @@ const loadItems = async (reset = false) => {
     total.value = 0;
   }
 
-  loading.value = offset.value === 0;  // первое открытие
-  loadingMore.value = offset.value > 0; // последующие догрузки
+  loading.value = offset.value === 0;
+  loadingMore.value = offset.value > 0;
   error.value = null;
 
   let actionName = '';
@@ -114,11 +114,16 @@ const loadItems = async (reset = false) => {
     });
 
     if (response.data.success) {
-      items.value.push(...response.data[entityType.value]);
+      const existingIds = new Set(items.value.map(item => item.ID));
+
+      const newItems = response.data[entityType.value].filter(item => !existingIds.has(item.ID));
+
+      items.value.push(...newItems);
       total.value = response.data.total;
       columns.value = getColumns(entityType.value);
       sortField.value = '';
-      offset.value += limit; // увеличиваем смещение
+      offset.value += limit; // можно оставить если хочешь авто-поднятие offset
+
     } else {
       error.value = 'Ошибка получения данных';
     }
@@ -130,6 +135,7 @@ const loadItems = async (reset = false) => {
     loadingMore.value = false;
   }
 };
+
 
 
 // Live поиск + сортировка
@@ -179,13 +185,21 @@ const paginatedItems = computed(() => {
 
 // сколько всего страниц
 const totalPages = computed(() => {
-  return Math.ceil(filteredItems.value.length / itemsPerPage);
+  return Math.ceil(total.value / itemsPerPage);
 });
 
 // смена страницы
-const goToPage = (page) => {
+const goToPage = async (page) => {
   if (page >= 1 && page <= totalPages.value) {
     currentPage.value = page;
+
+    const start = (page - 1) * itemsPerPage;
+    const end = start + itemsPerPage;
+
+    if (items.value.length < end && items.value.length < total.value) {
+      offset.value = items.value.length;
+      await loadItems();
+    }
   }
 };
 
