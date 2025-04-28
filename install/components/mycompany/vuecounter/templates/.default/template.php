@@ -1,7 +1,13 @@
 <?php
+if (!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true) die();
+
 use Bitrix\Main\Page\Asset;
 
-Asset::getInstance()->addJs('https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js'); // <- добавляем Vue
-Asset::getInstance()->addJs($this->addExternalJS("/local/modules/mycompany.vuecounter/install/js/mycompany.vuecounter/app.js")); // <- потом свой собранный app.js
+// Подключаем CSS
+Asset::getInstance()->addCss($templateFolder . '/dist/assets/main.css');
+
+// Подключаем JS
+Asset::getInstance()->addJs($templateFolder . '/dist/assets/main.js'); 
+
 ?>
 <div id="app"></div>
