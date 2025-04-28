@@ -32,6 +32,7 @@ class mycompany_vuecounter extends CModule
     {
         global $APPLICATION;
         // Копируем файлы компонента, публичные страницы, JS/CSS
+        $this->InstallEvents();
         $this->InstallFiles();
         $this->InstallPublic();
         // Регистрация модуля в системе
@@ -49,7 +50,7 @@ class mycompany_vuecounter extends CModule
     public function DoUninstall()
     {
         global $APPLICATION;
-        // Удаляем созданные файлы и страницы
+        $this->UnInstallEvents();
         $this->UnInstallFiles();
         // Удаляем модуль из системы
         \Bitrix\Main\ModuleManager::unRegisterModule($this->MODULE_ID);
@@ -58,7 +59,7 @@ class mycompany_vuecounter extends CModule
             GetMessage("MYCOMPANY_VUECOUNTER_UNINSTALL_TITLE"),
             __DIR__."/unstep.php"
         );
-        $this->UnInstallFiles();
+        // Удаляем созданные файлы и страницы
     }
 
 
@@ -68,11 +69,6 @@ class mycompany_vuecounter extends CModule
         CheckDirPath($_SERVER["DOCUMENT_ROOT"]."/local/components/mycompany/");
         // Копируем компонент (рекурсивно, с перезаписью)
         CopyDirFiles(__DIR__."/components", $_SERVER["DOCUMENT_ROOT"]."/local/components", true, true);
-        // Копируем JS/CSS, если они нужны в отдельных каталогах (см. пункт 3)
-        // Копируем JS
-        // CopyDirFiles(__DIR__."/js", $_SERVER["DOCUMENT_ROOT"]."/bitrix/js", true, true);
-        // Копируем CSS (если есть файлы стилей)
-        // CopyDirFiles(__DIR__."/css", $_SERVER["DOCUMENT_ROOT"]."/bitrix/css", true, true);
         return true;
     }
 
@@ -91,6 +87,34 @@ class mycompany_vuecounter extends CModule
         DeleteDirFilesEx('/local/components/mycompany/vuecounter/');
         DeleteDirFilesEx('/vuecounter/');
     }
+
+        public function InstallEvents()
+    {
+        // Регистрация обработчика меню
+        RegisterModuleDependences(
+            "main",
+            "OnBuildGlobalMenu",
+            $this->MODULE_ID,
+            "Mycompany\\Vuecounter\\Menu",
+            "addAdminMenu"
+        );
+        return true;
+    }
+
+    public function UnInstallEvents()
+    {
+        // Удаление обработчика меню
+        UnRegisterModuleDependences(
+            "main",
+            "OnBuildGlobalMenu",
+            $this->MODULE_ID,
+            "Mycompany\\Vuecounter\\Menu",
+            "addAdminMenu"
+        );
+        return true;
+    }
+
+
 
 }
 ?>
