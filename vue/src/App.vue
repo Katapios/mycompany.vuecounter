@@ -1,20 +1,18 @@
 <template>
-  <div class="crm-deals">
-    <h2>Сделки CRM</h2>
+<div class="crm-deals">
+  <h2>Сделки CRM</h2>
 
-    <div v-if="loading">Загрузка сделок...</div>
-    <div v-if="error" class="error">{{ error }}</div>
+  <div v-if="loading">Загрузка сделок...</div>
+  <div v-if="error" class="error">{{ error }}</div>
 
-    <ul v-if="!loading && !error">
-      <li v-for="deal in deals" :key="deal.ID">
-        <strong>{{ deal.TITLE }}</strong><br>
-        Сумма: {{ deal.OPPORTUNITY }} {{ deal.CURRENCY_ID }}<br>
-        Этап: {{ deal.STAGE_ID }}
-      </li>
-    </ul>
-
-    <p v-if="!loading && !error && deals.length === 0">Нет сделок.</p>
-  </div>
+  <ul v-if="!loading && !error">
+    <li v-for="deal in deals" :key="deal.ID">
+      <strong>{{ deal.TITLE }}</strong><br>
+      Сумма: {{ deal.OPPORTUNITY }} {{ deal.CURRENCY_ID }}<br>
+      Этап: {{ deal.STAGE_ID }}
+    </li>
+  </ul>
+</div>
 </template>
 
 <script setup>
@@ -25,6 +23,8 @@ const loading = ref(true);
 const error = ref(null);
 
 onMounted(() => {
+  loading.value = true;
+
   BX.ajax.runComponentAction('mycompany:vuecounter', 'getDeals', {
     mode: 'class'
   }).then(response => {
@@ -33,14 +33,15 @@ onMounted(() => {
     } else {
       error.value = 'Ошибка получения сделок';
     }
+    loading.value = false; // <-- ПЕРЕМЕСТИТЬ СЮДА
   }, err => {
-    console.error('Ошибка связи:', err);
+    console.error('Ошибка связи с сервером:', err);
     error.value = 'Ошибка связи с сервером';
-  }).then(() => {
-    loading.value = false;
+    loading.value = false; // <-- И СЮДА
   });
 });
 </script>
+
 
 
 <style scoped>

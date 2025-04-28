@@ -1,6 +1,7 @@
 import { createApp } from 'vue'
 import App from './App.vue'
 
-window.addEventListener('DOMContentLoaded', () => {
+// Дождись готовности BX, а не только DOM!
+BX.ready(function() {
     createApp(App).mount('#app');
 });
