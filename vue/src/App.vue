@@ -18,7 +18,7 @@
           placeholder="Поиск..."
           class="search-input"
       />
-      <button @click="deleteAllItems">🗑 Удалить все</button>
+      <button @click="deleteAllItemsBatch">🗑 Пакетное удаление всех</button>
     </div>
 
     <div v-if="loading" class="loader">Загрузка...</div>
@@ -291,24 +291,44 @@ async function deleteItem(id) {
   }
 }
 
-async function deleteAllItems() {
-  if (!confirm(`Удалить ВСЕ записи категории "${entityType.value}"? Это необратимо.`)) return;
-  try {
-    const response = await BX.ajax.runComponentAction('mycompany:vuecounter', 'deleteAllItems', {
-      mode: 'class',
-      data: {entityType: entityType.value},
-    });
+async function deleteAllItemsBatch() {
+  if (!confirm(`Удалить ВСЕ записи категории "${entityType.value}" пакетно? Это необратимо.`)) return;
 
-    if (response.data.success) {
-      alert('Все записи удалены');
-      await loadItems(true);
-    } else {
-      alert(`Ошибка: ${response.data.error || 'Неизвестно'}`);
+  let offset = 0;
+  const batchSize = 100; // сколько записей за один проход
+
+  loading.value = true;
+
+  try {
+    while (true) {
+      const response = await BX.ajax.runComponentAction('mycompany:vuecounter', 'deleteBatchItems', {
+        mode: 'class',
+        data: {entityType: entityType.value, batch: batchSize, offset}
+      });
+
+      if (!response.data.success) {
+        alert(`Ошибка: ${response.data.error}`);
+        break;
+      }
+
+      console.log(`Удалено ${response.data.processed} записей`);
+
+      if (response.data.nextOffset === null) {
+        alert('Все записи удалены успешно');
+        break;
+      }
+
+      offset = response.data.nextOffset;
     }
+
+    await loadItems(true); // перезагружаем таблицу
+
   } catch (e) {
-    console.error(e);
+    console.error('Ошибка удаления пакетами:', e);
     alert('Ошибка связи с сервером');
   }
+
+  loading.value = false;
 }
 
 onMounted(loadItems);

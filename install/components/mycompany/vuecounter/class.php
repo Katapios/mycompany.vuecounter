@@ -112,7 +112,7 @@ class VueCounterComponent extends CBitrixComponent implements Controllerable
     }
 
 
-    public function deleteAllItemsAction(string $entityType): array
+    public function deleteBatchItemsAction(string $entityType, int $batch = 100, int $offset = 0): array
     {
         if (!$this->checkAccess()) {
             return ['success' => false, 'error' => 'Доступ запрещён'];
@@ -126,28 +126,48 @@ class VueCounterComponent extends CBitrixComponent implements Controllerable
                     if (!Loader::includeModule('crm')) {
                         return ['success' => false, 'error' => 'Модуль CRM не подключен'];
                     }
-                    $ids = \Bitrix\Crm\DealTable::getList(['select' => ['ID']])->fetchAll();
+                    $ids = \Bitrix\Crm\DealTable::getList([
+                        'select' => ['ID'],
+                        'order' => ['ID' => 'ASC'],
+                        'offset' => $offset,
+                        'limit' => $batch,
+                    ])->fetchAll();
                     break;
 
                 case 'leads':
                     if (!Loader::includeModule('crm')) {
                         return ['success' => false, 'error' => 'Модуль CRM не подключен'];
                     }
-                    $ids = \Bitrix\Crm\LeadTable::getList(['select' => ['ID']])->fetchAll();
+                    $ids = \Bitrix\Crm\LeadTable::getList([
+                        'select' => ['ID'],
+                        'order' => ['ID' => 'ASC'],
+                        'offset' => $offset,
+                        'limit' => $batch,
+                    ])->fetchAll();
                     break;
 
                 case 'contacts':
                     if (!Loader::includeModule('crm')) {
                         return ['success' => false, 'error' => 'Модуль CRM не подключен'];
                     }
-                    $ids = \Bitrix\Crm\ContactTable::getList(['select' => ['ID']])->fetchAll();
+                    $ids = \Bitrix\Crm\ContactTable::getList([
+                        'select' => ['ID'],
+                        'order' => ['ID' => 'ASC'],
+                        'offset' => $offset,
+                        'limit' => $batch,
+                    ])->fetchAll();
                     break;
 
                 case 'tasks':
                     if (!Loader::includeModule('tasks')) {
                         return ['success' => false, 'error' => 'Модуль Tasks не подключен'];
                     }
-                    $ids = \Bitrix\Tasks\Internals\TaskTable::getList(['select' => ['ID']])->fetchAll();
+                    $ids = \Bitrix\Tasks\Internals\TaskTable::getList([
+                        'select' => ['ID'],
+                        'order' => ['ID' => 'ASC'],
+                        'offset' => $offset,
+                        'limit' => $batch,
+                    ])->fetchAll();
                     break;
 
                 case 'products':
@@ -168,6 +188,9 @@ class VueCounterComponent extends CBitrixComponent implements Controllerable
                     $ids = \Bitrix\Iblock\ElementTable::getList([
                         'select' => ['ID'],
                         'filter' => ['=IBLOCK_ID' => $iblockId],
+                        'order' => ['ID' => 'ASC'],
+                        'offset' => $offset,
+                        'limit' => $batch,
                     ])->fetchAll();
                     break;
 
@@ -200,14 +223,19 @@ class VueCounterComponent extends CBitrixComponent implements Controllerable
                 }
             }
 
-            return ['success' => true];
+            $processed = count($ids);
+
+            return [
+                'success' => true,
+                'processed' => $processed,
+                'nextOffset' => $processed > 0 ? $offset + $processed : null,
+            ];
 
         } catch (\Throwable $e) {
             return ['success' => false, 'error' => 'Ошибка сервера: ' . $e->getMessage()];
         }
     }
-
-
+    
     public function getDealsAction($offset = 0, $limit = 20)
     {
         if (!Loader::includeModule('crm')) {
