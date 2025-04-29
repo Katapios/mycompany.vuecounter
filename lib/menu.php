@@ -9,7 +9,7 @@ class Menu
     {
         global $APPLICATION;
 
-        if (!is_object($APPLICATION) || $APPLICATION->GetGroupRight("example.vueadmin") < "R") {
+        if (!is_object($APPLICATION) || $APPLICATION->GetGroupRight("mycompany.vuecounter") < "R") {
             return;
         }
 
