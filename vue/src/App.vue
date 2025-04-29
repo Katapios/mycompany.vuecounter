@@ -12,12 +12,13 @@
       </select>
 
       <input
-        v-model="searchQuery"
-        @input="applySearch"
-        type="text"
-        placeholder="Поиск..."
-        class="search-input"
+          v-model="searchQuery"
+          @input="applySearch"
+          type="text"
+          placeholder="Поиск..."
+          class="search-input"
       />
+      <button @click="deleteAllItems">🗑 Удалить все</button>
     </div>
 
     <div v-if="loading" class="loader">Загрузка...</div>
@@ -26,29 +27,38 @@
     <div v-if="!loading && !error && filteredItems.length" class="grid-wrapper">
       <table class="main-grid-table" id="vue-grid">
         <thead>
-          <tr>
-            <th v-for="column in columns" :key="column.id" @click="sortBy(column.id)">
-              {{ column.name }}
-              <span v-if="sortField === column.id">
-                {{ sortDirection === 'asc' ? '▲' : '▼' }}
-              </span>
-            </th>
-          </tr>
+        <tr>
+          <th
+              v-for="column in columns"
+              :key="column.id"
+              @click="sortBy(column.id)"
+              style="cursor: pointer;"
+          >
+            {{ column.name }}
+            <span v-if="sortField === column.id">
+          {{ sortDirection === 'asc' ? '▲' : '▼' }}
+        </span>
+          </th>
+          <th>Действия</th>
+        </tr>
         </thead>
         <tbody>
-          <tr v-for="item in paginatedItems" :key="item.ID">
-            <td v-for="column in columns" :key="column.id">
-              {{ item[column.id] || '-' }}
-            </td>
-          </tr>
+        <tr v-for="item in paginatedItems" :key="item.ID">
+          <td v-for="column in columns" :key="column.id">
+            {{ item[column.id] || '-' }}
+          </td>
+          <td>
+            <button @click="deleteItem(item.ID)">🗑</button>
+          </td>
+        </tr>
         </tbody>
       </table>
       <div v-if="totalPages > 1" class="pagination">
         <button
-          v-for="page in totalPages"
-          :key="page"
-          @click="goToPage(page)"
-          :class="{ active: currentPage === page }"
+            v-for="page in totalPages"
+            :key="page"
+            @click="goToPage(page)"
+            :class="{ active: currentPage === page }"
         >
           {{ page }}
         </button>
@@ -63,7 +73,10 @@
 
 
 <script setup>
-import { ref, onMounted, watch, computed } from 'vue';
+if (typeof BX === 'undefined') {
+  console.error('BX не загружен. Проверь подключение main.core.');
+}
+import {ref, onMounted, watch, computed} from 'vue';
 
 const offset = ref(0);
 const limit = 20;
@@ -97,11 +110,21 @@ const loadItems = async (reset = false) => {
 
   let actionName = '';
   switch (entityType.value) {
-    case 'deals': actionName = 'getDeals'; break;
-    case 'leads': actionName = 'getLeads'; break;
-    case 'contacts': actionName = 'getContacts'; break;
-    case 'tasks': actionName = 'getTasks'; break;
-    case 'products': actionName = 'getProducts'; break;
+    case 'deals':
+      actionName = 'getDeals';
+      break;
+    case 'leads':
+      actionName = 'getLeads';
+      break;
+    case 'contacts':
+      actionName = 'getContacts';
+      break;
+    case 'tasks':
+      actionName = 'getTasks';
+      break;
+    case 'products':
+      actionName = 'getProducts';
+      break;
   }
 
   try {
@@ -137,7 +160,6 @@ const loadItems = async (reset = false) => {
 };
 
 
-
 // Live поиск + сортировка
 const filteredItems = computed(() => {
   let filtered = items.value;
@@ -145,9 +167,9 @@ const filteredItems = computed(() => {
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase();
     filtered = filtered.filter(item =>
-      Object.values(item).some(val =>
-        String(val).toLowerCase().includes(query)
-      )
+        Object.values(item).some(val =>
+            String(val).toLowerCase().includes(query)
+        )
     );
   }
 
@@ -207,43 +229,87 @@ const getColumns = (type) => {
   switch (type) {
     case 'deals':
       return [
-        { id: 'ID', name: 'ID' },
-        { id: 'TITLE', name: 'Название сделки' },
-        { id: 'STAGE_ID', name: 'Стадия' },
-        { id: 'OPPORTUNITY', name: 'Сумма' },
-        { id: 'CURRENCY_ID', name: 'Валюта' }
+        {id: 'ID', name: 'ID'},
+        {id: 'TITLE', name: 'Название сделки'},
+        {id: 'STAGE_ID', name: 'Стадия'},
+        {id: 'OPPORTUNITY', name: 'Сумма'},
+        {id: 'CURRENCY_ID', name: 'Валюта'}
       ];
     case 'leads':
       return [
-        { id: 'ID', name: 'ID' },
-        { id: 'TITLE', name: 'Название лида' },
-        { id: 'STATUS_ID', name: 'Статус' },
-        { id: 'OPPORTUNITY', name: 'Сумма' },
-        { id: 'CURRENCY_ID', name: 'Валюта' }
+        {id: 'ID', name: 'ID'},
+        {id: 'TITLE', name: 'Название лида'},
+        {id: 'STATUS_ID', name: 'Статус'},
+        {id: 'OPPORTUNITY', name: 'Сумма'},
+        {id: 'CURRENCY_ID', name: 'Валюта'}
       ];
     case 'contacts':
       return [
-        { id: 'ID', name: 'ID' },
-        { id: 'NAME', name: 'Имя' },
-        { id: 'LAST_NAME', name: 'Фамилия' },
-        { id: 'POST', name: 'Должность' }
+        {id: 'ID', name: 'ID'},
+        {id: 'NAME', name: 'Имя'},
+        {id: 'LAST_NAME', name: 'Фамилия'},
+        {id: 'POST', name: 'Должность'}
       ];
     case 'tasks':
       return [
-        { id: 'ID', name: 'ID' },
-        { id: 'TITLE', name: 'Название задачи' },
-        { id: 'STATUS', name: 'Статус' },
-        { id: 'RESPONSIBLE_ID', name: 'Ответственный' }
+        {id: 'ID', name: 'ID'},
+        {id: 'TITLE', name: 'Название задачи'},
+        {id: 'STATUS', name: 'Статус'},
+        {id: 'RESPONSIBLE_ID', name: 'Ответственный'}
       ];
     case 'products':
       return [
-        { id: 'ID', name: 'ID' },
-        { id: 'NAME', name: 'Название товара' },
-        { id: 'PRICE', name: 'Цена' },
-        { id: 'CURRENCY_ID', name: 'Валюта' }
+        {id: 'ID', name: 'ID'},
+        {id: 'NAME', name: 'Название товара'},
+        {id: 'PRICE', name: 'Цена'},
+        {id: 'CURRENCY_ID', name: 'Валюта'}
       ];
   }
 };
+
+// Добавим новые функции для удаления
+
+async function deleteItem(id) {
+  if (!confirm(`Удалить элемент №${id}? Это действие необратимо.`)) return;
+  try {
+    const
+
+        response = await BX.ajax.runComponentAction('mycompany:vuecounter', 'deleteItem', {
+          mode: 'class',
+          data: {entityType: entityType.value, id}
+        });
+
+    if (response.data.success) {
+      alert('Удалено успешно');
+      await loadItems(true);
+    } else {
+      alert(`Ошибка: ${response.data.error || 'Неизвестно'}`);
+    }
+  } catch (e) {
+    console.error(e);
+    alert('Ошибка связи с сервером');
+  }
+}
+
+async function deleteAllItems() {
+  if (!confirm(`Удалить ВСЕ записи категории "${entityType.value}"? Это необратимо.`)) return;
+  try {
+    const response = await BX.ajax.runComponentAction('mycompany:vuecounter', 'deleteAllItems', {
+      mode: 'class',
+      data: {entityType: entityType.value},
+    });
+
+    if (response.data.success) {
+      alert('Все записи удалены');
+      await loadItems(true);
+    } else {
+      alert(`Ошибка: ${response.data.error || 'Неизвестно'}`);
+    }
+  } catch (e) {
+    console.error(e);
+    alert('Ошибка связи с сервером');
+  }
+}
 
 onMounted(loadItems);
 
@@ -255,7 +321,8 @@ watch(entityType, () => {
 watch(searchQuery, () => {
   currentPage.value = 1;
 });
-const applySearch = () => {};
+const applySearch = () => {
+};
 </script>
 
 
@@ -319,6 +386,7 @@ const applySearch = () => {};
 .main-grid-table tbody tr:hover {
   background-color: #f5f7fa;
 }
+
 .pagination {
   margin-top: 20px;
   text-align: center;
