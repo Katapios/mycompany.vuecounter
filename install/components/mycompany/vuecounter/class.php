@@ -11,6 +11,7 @@ use Bitrix\Crm\ContactTable;
 use Bitrix\Tasks\Internals\TaskTable;
 use Bitrix\Catalog\CatalogIblockTable;
 use Bitrix\Iblock\ElementTable;
+use Bitrix\Catalog\PriceTable;
 
 class VueCounterComponent extends CBitrixComponent implements Controllerable
 {
@@ -235,7 +236,7 @@ class VueCounterComponent extends CBitrixComponent implements Controllerable
             return ['success' => false, 'error' => 'Ошибка сервера: ' . $e->getMessage()];
         }
     }
-    
+
     public function getDealsAction($offset = 0, $limit = 20)
     {
         if (!Loader::includeModule('crm')) {
@@ -347,6 +348,40 @@ class VueCounterComponent extends CBitrixComponent implements Controllerable
             ->setLimit($limit)
             ->fetchAll();
 
+
+        if (empty($products)) {
+            return ['success' => true, 'products' => [], 'total' => 0];
+        }
+
+        // Соберем ID товаров для выборки цен
+        $productIds = array_column($products, 'ID');
+        $prices = [];
+
+        try {
+            $priceRows = PriceTable::getList([
+                'filter' => ['=PRODUCT_ID' => $productIds],
+                'select' => ['PRODUCT_ID', 'PRICE', 'CURRENCY']
+            ])->fetchAll();
+
+            foreach ($priceRows as $price) {
+                $prices[$price['PRODUCT_ID']] = [
+                    'PRICE' => $price['PRICE'],
+                    'CURRENCY' => $price['CURRENCY']
+                ];
+            }
+
+        } catch (\Throwable $e) {
+            return ['success' => false, 'error' => 'Ошибка получения цен: ' . $e->getMessage()];
+        }
+
+        // Добавим цену и валюту к каждому товару
+        foreach ($products as &$product) {
+            $priceInfo = $prices[$product['ID']] ?? ['PRICE' => null, 'CURRENCY' => null];
+            $product['PRICE'] = $priceInfo['PRICE'];
+            $product['CURRENCY_ID'] = $priceInfo['CURRENCY'];
+        }
+
+
         $totalCount = ElementTable::getCount([
             '=IBLOCK_ID' => $catalogInfo['IBLOCK_ID']
         ]);
@@ -356,6 +391,8 @@ class VueCounterComponent extends CBitrixComponent implements Controllerable
             'products' => $products,
             'total' => $totalCount,
         ];
+
     }
+
 
 }
